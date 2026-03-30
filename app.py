@@ -6,11 +6,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 movies = pd.read_csv("movies.csv")
 
-
-
 movies = movies.dropna(subset=['title'])
 # Combine features
-
 movies['overview'] = movies['overview'].fillna('')
 movies['genres'] = movies['genres'].fillna('')
 movies['keywords'] = movies['keywords'].fillna('')
@@ -22,7 +19,6 @@ movies['tags'] = (
     movies['keywords']*3
 )
 
-
 movies['tags'] = movies['tags'].apply(lambda x: x.lower())
 
 movies = movies[movies['vote_average'] > 6]
@@ -32,8 +28,6 @@ movies = movies[movies['vote_average'] > 6]
 cv = TfidfVectorizer(max_features=15000, stop_words='english')
 vectors = cv.fit_transform(movies['tags']).toarray()
 similarity = cosine_similarity(vectors)
-
-
 
 def recommend(movie):
     movie = movie.lower()
