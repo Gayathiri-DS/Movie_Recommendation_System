@@ -3,27 +3,41 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-movies = pd.read_csv("movies.csv")
+st.set_page_config(page_title="Movie Recommender", layout="wide")
+st.title("🎬 Movie Recommendation System")
 
-movies = movies.dropna(subset=['title'])
-movies['overview'] = movies['overview'].fillna('')
-movies['genres'] = movies['genres'].fillna('')
-movies['keywords'] = movies['keywords'].fillna('')
+@st.cache_data
+def load_data():
+    movies = pd.read_csv("movies.csv")
 
-movies['tags'] = (
-    movies['overview'] + " " +
-    movies['genres'] + " " +
-    movies['keywords']
-)
+    movies = movies.dropna(subset=['title'])
+    movies['overview'] = movies['overview'].fillna('')
+    movies['genres'] = movies['genres'].fillna('')
+    movies['keywords'] = movies['keywords'].fillna('')
 
-movies['tags'] = movies['tags'].apply(lambda x: str(x).lower())
+    movies['tags'] = (
+        movies['overview'] + " " +
+        movies['genres'] + " " +
+        movies['keywords']
+    )
 
-if 'vote_average' in movies.columns:
-    movies = movies[movies['vote_average'] > 6]
+    movies['tags'] = movies['tags'].apply(lambda x: str(x).lower())
 
-cv = TfidfVectorizer(max_features=5000, stop_words='english')
-vectors = cv.fit_transform(movies['tags'])
+    return movies
 
+
+@st.cache_resource
+def create_vectors(movies):
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    cv = TfidfVectorizer(max_features=5000, stop_words='english')
+    vectors = cv.fit_transform(movies['tags'])
+
+    return vectors
+
+
+movies = load_data()
+vectors = create_vectors(movies)
 def recommend(movie):
     movie = movie.lower()
 
