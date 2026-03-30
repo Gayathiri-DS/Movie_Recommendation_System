@@ -3,31 +3,26 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-
 movies = pd.read_csv("movies.csv")
 
 movies = movies.dropna(subset=['title'])
-# Combine features
 movies['overview'] = movies['overview'].fillna('')
 movies['genres'] = movies['genres'].fillna('')
 movies['keywords'] = movies['keywords'].fillna('')
 
-
 movies['tags'] = (
     movies['overview'] + " " +
     movies['genres'] + " " +
-    movies['keywords']*3
+    movies['keywords']
 )
 
-movies['tags'] = movies['tags'].apply(lambda x: x.lower())
+movies['tags'] = movies['tags'].apply(lambda x: str(x).lower())
 
-movies = movies[movies['vote_average'] > 6]
+if 'vote_average' in movies.columns:
+    movies = movies[movies['vote_average'] > 6]
 
-
-
-cv = TfidfVectorizer(max_features=15000, stop_words='english')
-vectors = cv.fit_transform(movies['tags']).toarray()
-similarity = cosine_similarity(vectors)
+cv = TfidfVectorizer(max_features=5000, stop_words='english')
+vectors = cv.fit_transform(movies['tags'])
 
 def recommend(movie):
     movie = movie.lower()
@@ -36,15 +31,19 @@ def recommend(movie):
         return ["Movie not found"]
 
     index = movies[movies['title'].str.lower() == movie].index[0]
-    distances = list(enumerate(similarity[index]))
 
-    movies_list = sorted(distances, key=lambda x: x[1], reverse=True)[1:20]
+    distances = cosine_similarity(vectors[index], vectors).flatten()
+
+    movies_list = sorted(
+        list(enumerate(distances)),
+        key=lambda x: x[1],
+        reverse=True
+    )[1:20]
 
     recommended = []
 
     for i in movies_list:
         title = movies.iloc[i[0]].title
-
 
         if "alien" in title.lower():
             continue
@@ -55,8 +54,6 @@ def recommend(movie):
             break
 
     return recommended
-
-
 st.title("🎬 Movie Recommendation System")
 
 selected_movie = st.selectbox(
@@ -65,6 +62,8 @@ selected_movie = st.selectbox(
 )
 
 if st.button("Recommend"):
-    recs = recommend(selected_movie)
-    for movie in recs:
+    recommendations = recommend(selected_movie)
+
+    st.subheader("Recommended Movies:")
+    for movie in recommendations:
         st.write(movie)
